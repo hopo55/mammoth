@@ -160,8 +160,7 @@ def train(model: ContinualModel, dataset: ContinualDataset,
         if not args.disable_log:
             logger.log(mean_acc)
             logger.log_fullacc(accs)
-
-            tensor_logger.result('Eval Acc', mean_acc, t+1)
+            tensor_logger.result('Eval Acc', mean_acc[0], t+1)
 
         if not args.nowand:
             d2={'RESULT_class_mean_accs': mean_acc[0], 'RESULT_task_mean_accs': mean_acc[1],
@@ -189,6 +188,5 @@ def train(model: ContinualModel, dataset: ContinualDataset,
     if not args.nowand:
         wandb.finish()
 
-    config = vars(args)
     metric_dict = {'metric': mean_acc}
-    tensor_logger.writer.add_hparams(config, metric_dict)
+    tensor_logger.config(args, metric_dict)
