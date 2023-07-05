@@ -177,7 +177,7 @@ class SequentialTinyImagenet(ContinualDataset):
 
     @staticmethod
     def get_epochs():
-        return 50
+        return 80
 
     @staticmethod
     def get_batch_size():
