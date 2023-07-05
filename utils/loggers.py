@@ -14,6 +14,12 @@ from utils import create_if_not_exists
 from utils.conf import base_path
 from utils.metrics import backward_transfer, forward_transfer, forgetting
 
+import datetime as dt
+from pathlib import Path
+from typing import Union
+from torch.utils.tensorboard import SummaryWriter
+
+
 useless_args = ['dataset', 'tensorboard', 'validation', 'model',
                 'csv_log', 'notes', 'load_best_args']
 
@@ -185,3 +191,36 @@ class Logger:
                 + self.model + "/logs.pyd"
             with open(path, 'a') as f:
                 f.write(str(wrargs) + '\n')
+
+
+# Tensorboard Logger
+def _is_aws_or_gcloud_path(tb_log_dir: str) -> bool:
+    return tb_log_dir.startswith("gs://") or tb_log_dir.startswith("s3://")
+
+def _make_path_if_local(tb_log_dir: Union[str, Path]) -> Union[str, Path]:
+    if isinstance(tb_log_dir, str) and _is_aws_or_gcloud_path(tb_log_dir):
+        return tb_log_dir
+
+    tb_log_dir = Path(tb_log_dir)
+    tb_log_dir.mkdir(parents=True, exist_ok=True)
+    return tb_log_dir
+
+class TensorLogger():
+    def __init__(self, path):
+        self.path = path
+        date = dt.datetime.now()
+        date = date.strftime("%Y_%m_%d_%H_%M_%S")
+
+        tb_log_dir = _make_path_if_local(self.path)
+        # tb_log_dir = self.path + '/' + method
+        # tb_log_dir = _make_path_if_local(tb_log_dir)
+        tb_log_dir = self.path + '/' + date
+        tb_log_dir = _make_path_if_local(tb_log_dir)
+        self.logger = SummaryWriter(tb_log_dir)
+
+    def result(self, title, log_data, n_iter):
+        self.logger.add_scalar(title, log_data, n_iter)
+
+    def config(self, config, metric_dict):
+        config = vars(config)
+        self.logger.add_hparams(config, metric_dict, run_name=None)

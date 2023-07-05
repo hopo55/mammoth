@@ -40,6 +40,10 @@ def add_experiment_args(parser: ArgumentParser) -> None:
 def add_management_args(parser: ArgumentParser) -> None:
     parser.add_argument('--seed', type=int, default=None,
                         help='The random seed.')
+    parser.add_argument('--device_name', type=str, default='0',
+                        help='Set device.')
+    parser.add_argument('--d_name', type=str, default='cal-06',
+                        help='Set device name.')
     parser.add_argument('--notes', type=str, default=None,
                         help='Notes for this run.')
 

@@ -96,6 +96,8 @@ def train(model: ContinualModel, dataset: ContinualDataset,
 
     if not args.disable_log:
         logger = Logger(dataset.SETTING, dataset.NAME, model.NAME)
+        log_path = base_path() + 'logs/' + dataset.NAME + '/' + model.NAME
+        tensor_logger = TensorLogger(log_path)
 
     progress_bar = ProgressBar(verbose=not args.non_verbose)
 
@@ -159,6 +161,8 @@ def train(model: ContinualModel, dataset: ContinualDataset,
             logger.log(mean_acc)
             logger.log_fullacc(accs)
 
+            tensor_logger.result('Eval Acc', mean_acc, t+1)
+
         if not args.nowand:
             d2={'RESULT_class_mean_accs': mean_acc[0], 'RESULT_task_mean_accs': mean_acc[1],
                 **{f'RESULT_class_acc_{i}': a for i, a in enumerate(accs[0])},
@@ -184,3 +188,7 @@ def train(model: ContinualModel, dataset: ContinualDataset,
 
     if not args.nowand:
         wandb.finish()
+
+    config = vars(args)
+    metric_dict = {'metric': mean_acc}
+    tensor_logger.writer.add_hparams(config, metric_dict)

@@ -53,7 +53,8 @@ def make_ddp(model):
 
     setup(base_rank, world_size)
     model.to(0)
-    model.device = "cuda:0"
+    # model.device = "cuda:0"
+    model.device = "cuda:1"
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
     ddp_model = DDP(model, device_ids=[0])
     os.environ['MAMMOTH_RANK'] = str(base_rank)
@@ -78,4 +79,5 @@ class CustomDP(DataParallel):
 
 
 def make_dp(model):
-    return CustomDP(model, device_ids=range(torch.cuda.device_count())).to('cuda:0')
+    # return CustomDP(model, device_ids=range(torch.cuda.device_count())).to('cuda:0')
+    return CustomDP(model, device_ids=range(torch.cuda.device_count())).to('cuda:1')

@@ -7,12 +7,14 @@ import random
 import torch
 import numpy as np
 
-def get_device() -> torch.device:
+def get_device(args) -> torch.device:
     """
     Returns the GPU device if available else CPU.
     """
     if torch.cuda.is_available():
-        return torch.device("cuda:0")
+        device_name = 'cuda:' + args.device_name
+        return torch.device(device_name)
+        # return torch.device("cuda:0")
     try:
         if torch.backends.mps.is_available() and torch.backends.mps.is_built():
             return torch.device("mps")

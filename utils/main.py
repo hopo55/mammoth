@@ -3,12 +3,13 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+# available dataset list ['seq-mnist', 'seq-cifar10', 'seq-cifar100', 'seq-tinyimg', 'rot-mnist', 'perm-mnist', 'mnist-360'])
+
 import numpy  # needed (don't change it)
 import importlib
 import os
 import socket
 import sys
-
 
 mammoth_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(mammoth_path)
