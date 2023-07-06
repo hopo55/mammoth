@@ -188,5 +188,5 @@ def train(model: ContinualModel, dataset: ContinualDataset,
     if not args.nowand:
         wandb.finish()
 
-    metric_dict = {'metric': mean_acc}
+    metric_dict = {'metric': mean_acc[0]}
     tensor_logger.config(args, metric_dict)
