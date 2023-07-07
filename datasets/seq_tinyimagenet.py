@@ -59,6 +59,9 @@ class TinyImagenet(Dataset):
                       ('train' if self.train else 'val', num + 1))))
         self.targets = np.concatenate(np.array(self.targets))
 
+        print(self.data)
+
+
     def __len__(self):
         return len(self.data)
 
@@ -181,7 +184,7 @@ class SequentialTinyImagenet(ContinualDataset):
 
     @staticmethod
     def get_batch_size():
-        return 32
+        return 32 #256
 
     @staticmethod
     def get_minibatch_size():

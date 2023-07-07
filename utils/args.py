@@ -42,7 +42,7 @@ def add_management_args(parser: ArgumentParser) -> None:
                         help='The random seed.')
     parser.add_argument('--device_name', type=str, default='0',
                         help='Set device.')
-    parser.add_argument('--d_name', type=str, default='cal-06',
+    parser.add_argument('--d_name', type=str, default='cal-05',
                         help='Set device name.')
     parser.add_argument('--notes', type=str, default=None,
                         help='Notes for this run.')
