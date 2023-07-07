@@ -1,11 +1,13 @@
 import os
 from typing import Any
+import numpy as np
+from PIL import Image
 
 import pandas as pd
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.folder import default_loader
 from torchvision.datasets.utils import download_file_from_google_drive
-
+import torchvision.transforms as transforms
 
 class CUB200(VisionDataset):
     """`CUB-200-2011 <http://www.vision.caltech.edu/visipedia/CUB-200-2011.html>`_ Dataset.
@@ -36,11 +38,24 @@ class CUB200(VisionDataset):
         if download:
             self._download()
 
-        if not self._check_integrity():
-            raise RuntimeError('Dataset not found or corrupted. You can use download=True to download it')
+        # if not self._check_integrity():
+        #     raise RuntimeError('Dataset not found or corrupted. You can use download=True to download it')
         
         self.data: Any = []
         self.targets = []
+
+        for idx in range(len(self.datas)):
+            sample = self.datas.iloc[idx]
+            path = os.path.join(self.root, self.base_folder, sample.filepath)
+            target = sample.target - 1  # Targets start at 1 by default, so shift to 0
+            img = self.loader(path)
+            img = img.resize((448,448), resample=Image.ANTIALIAS)
+            self.data.append(np.array(img))
+            self.targets.append(target)
+            # self.data = img if idx == 0 else np.concatenate((self.data, img), axis=0)
+        self.data = np.array(self.data)
+        self.targets = np.array(self.targets)
+
 
     def _load_metadata(self):
         images = pd.read_csv(os.path.join(self.root, 'CUB_200_2011', 'images.txt'), sep=' ',
@@ -51,15 +66,15 @@ class CUB200(VisionDataset):
                                        sep=' ', names=['img_id', 'is_training_img'])
 
         data = images.merge(image_class_labels, on='img_id')
-        self.data = data.merge(train_test_split, on='img_id')
+        self.datas = data.merge(train_test_split, on='img_id')
 
         class_names = pd.read_csv(os.path.join(self.root, 'CUB_200_2011', 'classes.txt'),
                                   sep=' ', names=['class_name'], usecols=[1])
         self.class_names = class_names['class_name'].to_list()
         if self.train:
-            self.data = self.data[self.data.is_training_img == 1]
+            self.datas = self.datas[self.datas.is_training_img == 1]
         else:
-            self.data = self.data[self.data.is_training_img == 0]
+            self.datas = self.datas[self.datas.is_training_img == 0]
 
     def _check_integrity(self):
         try:
@@ -67,7 +82,7 @@ class CUB200(VisionDataset):
         except Exception:
             return False
 
-        for index, row in self.data.iterrows():
+        for index, row in self.datas.iterrows():
             filepath = os.path.join(self.root, self.base_folder, row.filepath)
             if not os.path.isfile(filepath):
                 print(filepath)
@@ -87,10 +102,10 @@ class CUB200(VisionDataset):
             tar.extractall(path=self.root)
 
     def __len__(self):
-        return len(self.data)
+        return len(self.datas)
 
     def __getitem__(self, idx):
-        sample = self.data.iloc[idx]
+        sample = self.datas.iloc[idx]
         path = os.path.join(self.root, self.base_folder, sample.filepath)
         target = sample.target - 1  # Targets start at 1 by default, so shift to 0
         img = self.loader(path)

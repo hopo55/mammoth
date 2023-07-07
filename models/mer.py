@@ -46,7 +46,8 @@ class Mer(ContinualModel):
         for i in range(self.args.batch_num):
             if not self.buffer.is_empty():
                 buf_inputs, buf_labels = self.buffer.get_data(self.args.minibatch_size, transform=self.transform)
-                inputs = torch.cat((buf_inputs, inp.unsqueeze(0)))
+                # inputs = torch.cat((buf_inputs, inp.unsqueeze(0)))
+                inputs = torch.cat((buf_inputs, inp))
                 labels = torch.cat((buf_labels, torch.tensor([lab]).to(self.device)))
                 batches.append((inputs, labels))
             else:
@@ -65,6 +66,9 @@ class Mer(ContinualModel):
 
             # within-batch step
             self.opt.zero_grad()
+            if len(batch_inputs.size()) > 4:
+                batch_size = batch_inputs.size()[2:]
+                batch_inputs = batch_inputs.view(-1, batch_size[0], batch_size[1], batch_size[2])
             outputs = self.net(batch_inputs)
             loss = self.loss(outputs, batch_labels.squeeze(-1))
             loss.backward()
@@ -74,7 +78,8 @@ class Mer(ContinualModel):
             new_params = theta_Wi0 + self.args.beta * (self.net.get_params() - theta_Wi0)
             self.net.set_params(new_params)
 
-        self.buffer.add_data(examples=not_aug_inputs.unsqueeze(0), labels=labels)
+        # self.buffer.add_data(examples=not_aug_inputs.unsqueeze(0), labels=labels)
+        self.buffer.add_data(examples=not_aug_inputs, labels=labels)
 
         # across batch reptile meta-update
         new_new_params = theta_A0 + self.args.gamma * (self.net.get_params() - theta_A0)

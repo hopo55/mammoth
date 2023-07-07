@@ -64,15 +64,14 @@ class SequentialCUB200(ContinualDataset):
     N_CLASSES_PER_TASK = 20
     N_TASKS = 10
     TRANSFORM = transforms.Compose(
-            [transforms.RandomCrop(32, padding=4),
+            [transforms.RandomCrop(224, padding=4),
              transforms.RandomHorizontalFlip(),
              transforms.ToTensor(),
              transforms.Normalize((0.485, 0.456, 0.406),
                                   (0.229, 0.224, 0.225))])
 
     def get_examples_number(self):
-        train_dataset = MyCUB200(base_path() + 'CUB200', train=True,
-                                  download=True)
+        train_dataset = MyCUB200(base_path() + 'CUB200', train=True, download=True)
         return len(train_dataset.data)
 
     def get_data_loaders(self):
@@ -81,14 +80,13 @@ class SequentialCUB200(ContinualDataset):
         test_transform = transforms.Compose(
             [transforms.ToTensor(), self.get_normalization_transform()])
 
-        train_dataset = MyCUB200(base_path() + 'CUB200', train=True,
-                                  download=True, transform=transform)
+        train_dataset = MyCUB200(base_path() + 'CUB200', train=True, download=True, transform=transform)
+
         if self.args.validation:
             train_dataset, test_dataset = get_train_val(train_dataset,
                                                     test_transform, self.NAME)
         else:
-            test_dataset = MyCUB200(base_path() + 'CUB200',train=False,
-                                   download=True, transform=test_transform)
+            test_dataset = CUB200(base_path() + 'CUB200', train=False, download=True, transform=test_transform)
 
         train, test = store_masked_loaders(train_dataset, test_dataset, self)
 
