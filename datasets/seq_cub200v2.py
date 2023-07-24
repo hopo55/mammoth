@@ -64,25 +64,21 @@ class SequentialCUB200(ContinualDataset):
     N_CLASSES_PER_TASK = 20
     N_TASKS = 10
     TRANSFORM = transforms.Compose(
-            [transforms.Resize((224, 224)),
-             transforms.RandomCrop(224, padding=4),
+            [transforms.RandomCrop(224, padding=4),
              transforms.RandomHorizontalFlip(),
              transforms.ToTensor(),
              transforms.Normalize((0.485, 0.456, 0.406),
                                   (0.229, 0.224, 0.225))])
 
-    # def get_examples_number(self):
-    #     transform = self.TRANSFORM
-    #     train_dataset = MyCUB200(base_path() + 'CUB200', train=True, download=True, transform=transform)
-    #     return len(train_dataset.data)
+    def get_examples_number(self):
+        train_dataset = MyCUB200(base_path() + 'CUB200', train=True, download=True)
+        return len(train_dataset.data)
 
     def get_data_loaders(self):
         transform = self.TRANSFORM
 
         test_transform = transforms.Compose(
-            [transforms.Resize((224,224)),
-             transforms.ToTensor(), 
-             self.get_normalization_transform()])
+            [transforms.ToTensor(), self.get_normalization_transform()])
 
         train_dataset = MyCUB200(base_path() + 'CUB200', train=True, download=True, transform=transform)
 
@@ -90,7 +86,7 @@ class SequentialCUB200(ContinualDataset):
             train_dataset, test_dataset = get_train_val(train_dataset,
                                                     test_transform, self.NAME)
         else:
-            test_dataset = TCUB200(base_path() + 'CUB200', train=False, download=True, transform=test_transform)
+            test_dataset = CUB200(base_path() + 'CUB200', train=False, download=True, transform=test_transform)
 
         train, test = store_masked_loaders(train_dataset, test_dataset, self)
 
@@ -129,12 +125,12 @@ class SequentialCUB200(ContinualDataset):
 
     @staticmethod
     def get_batch_size():
-        return 8
+        return 32
 
     @staticmethod
     def get_minibatch_size():
         return SequentialCUB200.get_batch_size()
-   
+
     @staticmethod
     def get_scheduler(model, args) -> torch.optim.lr_scheduler:
         model.opt = torch.optim.SGD(model.net.parameters(), lr=args.lr, weight_decay=args.optim_wd, momentum=args.optim_mom)

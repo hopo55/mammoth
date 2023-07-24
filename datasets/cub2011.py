@@ -49,7 +49,8 @@ class CUB200(VisionDataset):
             path = os.path.join(self.root, self.base_folder, sample.filepath)
             target = sample.target - 1  # Targets start at 1 by default, so shift to 0
             img = self.loader(path)
-            img = img.resize((448,448), resample=Image.ANTIALIAS)
+            # img = img.resize((448,448), resample=Image.ANTIALIAS)
+            img = img.resize((224,224), resample=Image.ANTIALIAS)
             self.data.append(np.array(img))
             self.targets.append(target)
             # self.data = img if idx == 0 else np.concatenate((self.data, img), axis=0)
@@ -102,7 +103,8 @@ class CUB200(VisionDataset):
             tar.extractall(path=self.root)
 
     def __len__(self):
-        return len(self.datas)
+        # return len(self.datas)
+        return len(self.data)
 
     def __getitem__(self, idx):
         sample = self.datas.iloc[idx]
