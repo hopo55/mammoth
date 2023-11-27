@@ -40,14 +40,16 @@ class ContinualModel(nn.Module):
         if not self.NAME or not self.COMPATIBILITY:
             raise NotImplementedError('Please specify the name and the compatibility of the model.')
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    # def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y) -> torch.Tensor:
         """
         Computes a forward pass.
         :param x: batch of inputs
         :param task_label: some models require the task label
         :return: the result of the computation
         """
-        return self.net(x)
+        # return self.net(x)
+        return self.net(x, y)
 
     def meta_observe(self, *args, **kwargs):
         if 'wandb' in sys.modules and not self.args.nowand:

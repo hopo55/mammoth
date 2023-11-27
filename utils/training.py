@@ -7,6 +7,7 @@ import math
 import sys
 from argparse import Namespace
 from typing import Tuple
+import time
 
 import torch
 from datasets import get_dataset
@@ -57,7 +58,8 @@ def evaluate(model: ContinualModel, dataset: ContinualDataset, last=False) -> Tu
                 if 'class-il' not in model.COMPATIBILITY:
                     outputs = model(inputs, k)
                 else:
-                    outputs = model(inputs)
+                    # outputs = model(inputs)
+                    outputs = model(inputs, labels)
 
                 _, pred = torch.max(outputs.data, 1)
                 correct += torch.sum(pred == labels).item()
@@ -100,6 +102,8 @@ def train(model: ContinualModel, dataset: ContinualDataset,
         tensor_logger = TensorLogger(log_path)
 
     progress_bar = ProgressBar(verbose=not args.non_verbose)
+
+    start = time.time()
 
     if not args.ignore_other_metrics:
         dataset_copy = get_dataset(args)
@@ -149,13 +153,19 @@ def train(model: ContinualModel, dataset: ContinualDataset,
 
         if hasattr(model, 'end_task'):
             model.end_task(dataset)
+        
+        train_time = time.time() - start
+        wandb.log({'Training Time': train_time})
 
+        start = time.time()
         accs = evaluate(model, dataset)
         results.append(accs[0])
         results_mask_classes.append(accs[1])
 
         mean_acc = np.mean(accs, axis=1)
         print_mean_accuracy(mean_acc, t + 1, dataset.SETTING)
+        inference_time = time.time() - start
+        wandb.log({'Inference Time': inference_time})
 
         if not args.disable_log:
             logger.log(mean_acc)

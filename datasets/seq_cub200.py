@@ -3,7 +3,7 @@ from typing import Tuple
 import torch.nn.functional as F
 import torch.optim
 import torchvision.transforms as transforms
-from backbone.ResNet18 import resnet18
+# from backbone.ResNet18 import resnet18
 from PIL import Image
 from cub2011 import CUB200
 

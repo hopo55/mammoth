@@ -149,11 +149,136 @@ class ResNet(MammothBackbone):
         raise NotImplementedError("Unknown return type")
 
 
-def resnet18(nclasses: int, nf: int=64) -> ResNet:
+class NCM(nn.Module):
+    def __init__(self, feature_dim, num_classes):
+        super(NCM, self).__init__()
+        self.num_classes = num_classes
+        self.feature_dim = feature_dim
+
+        self.class_means = torch.zeros((num_classes, feature_dim)).cuda()
+        self.cK = torch.zeros(num_classes).cuda()
+
+    def forward(self, x):
+        distances = torch.cdist(x, self.class_means)
+        return -distances
+
+    def update_class_centers(self, features, labels):
+        for feature, label in zip(features, labels):
+            self.class_means.data[label] += (feature - self.class_means.data[label]) / (self.cK.data[label] + 1)
+            self.cK.data[label] += 1
+    
+    def classification(sefl, distances):
+        # exp_neg_distances = torch.exp(distances)
+        # outputs = F.softmax(exp_neg_distances, dim=1)
+        outputs = F.softmax(distances, dim=1)
+
+        return outputs
+
+    def reset_class_means(self, labels):
+        # self.class_means.data[labels] = 0
+        self.cK.data[labels] = 0
+
+
+class ResNetNCM(MammothBackbone):
+    """
+    ResNet network architecture. Designed for complex datasets.
+    """
+
+    def __init__(self, block: BasicBlock, num_blocks: List[int],
+                 num_classes: int, nf: int) -> None:
+        """
+        Instantiates the layers of the network.
+        :param block: the basic ResNet block
+        :param num_blocks: the number of blocks per layer
+        :param num_classes: the number of output classes
+        :param nf: the number of filters
+        """
+        super(ResNetNCM, self).__init__()
+        self.in_planes = nf
+        self.block = block
+        self.num_classes = num_classes
+        self.nf = nf
+        self.conv1 = conv3x3(3, nf * 1)
+        self.bn1 = nn.BatchNorm2d(nf * 1)
+        self.layer1 = self._make_layer(block, nf * 1, num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, nf * 2, num_blocks[1], stride=2)
+        self.layer3 = self._make_layer(block, nf * 4, num_blocks[2], stride=2)
+        self.layer4 = self._make_layer(block, nf * 8, num_blocks[3], stride=2)
+        self.linear = NCM(nf * 8 * block.expansion, num_classes)
+
+        self._features = nn.Sequential(self.conv1,
+                                       self.bn1,
+                                       nn.ReLU(),
+                                       self.layer1,
+                                       self.layer2,
+                                       self.layer3,
+                                       self.layer4
+                                       )
+        self.classifier = self.linear
+
+    def _make_layer(self, block: BasicBlock, planes: int,
+                    num_blocks: int, stride: int) -> nn.Module:
+        """
+        Instantiates a ResNet layer.
+        :param block: ResNet basic block
+        :param planes: channels across the network
+        :param num_blocks: number of blocks
+        :param stride: stride
+        :return: ResNet layer
+        """
+        strides = [stride] + [1] * (num_blocks - 1)
+        layers = []
+        for stride in strides:
+            layers.append(block(self.in_planes, planes, stride))
+            self.in_planes = planes * block.expansion
+        return nn.Sequential(*layers)
+
+    def forward(self, x: torch.Tensor, y, returnt='out') -> torch.Tensor:
+        """
+        Compute a forward pass.
+        :param x: input tensor (batch_size, *input_shape)
+        :param returnt: return type (a string among 'out', 'features', 'all')
+        :return: output tensor (output_classes)
+        """
+
+        out = relu(self.bn1(self.conv1(x))) # 64, 32, 32
+        if hasattr(self, 'maxpool'):
+            out = self.maxpool(out)
+        out = self.layer1(out)  # -> 64, 32, 32
+        out = self.layer2(out)  # -> 128, 16, 16
+        out = self.layer3(out)  # -> 256, 8, 8
+        out = self.layer4(out)  # -> 512, 4, 4
+        out = avg_pool2d(out, out.shape[2]) # -> 512, 1, 1
+        feature = out.view(out.size(0), -1)  # 512
+
+        if returnt == 'features':
+            return feature
+
+        out = self.classifier(feature)
+        self.classifier.update_class_centers(feature, y)
+
+        if returnt == 'out':
+            return out
+        elif returnt == 'all':
+            return (out, feature)
+
+        raise NotImplementedError("Unknown return type")
+
+
+# def resnet18(nclasses: int, nf: int=64) -> ResNet:
+#     """
+#     Instantiates a ResNet18 network.
+#     :param nclasses: number of output classes
+#     :param nf: number of filters
+#     :return: ResNet network
+#     """
+#     return ResNet(BasicBlock, [2, 2, 2, 2], nclasses, nf)
+
+def resnet18_ncm(nclasses: int, nf: int=64) -> ResNetNCM:
     """
     Instantiates a ResNet18 network.
     :param nclasses: number of output classes
     :param nf: number of filters
     :return: ResNet network
     """
-    return ResNet(BasicBlock, [2, 2, 2, 2], nclasses, nf)
+    return ResNetNCM(BasicBlock, [2, 2, 2, 2], nclasses, nf)
